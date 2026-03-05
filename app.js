@@ -1,8 +1,8 @@
-/* Road Trip Planner PWA (offline, editable, drag reorder, Google Maps deep links)
-   No API key, no billing. Driving time shown in Google Maps (external).
+/* Road Trip Planner PWA (offline, editable, drag reorder, Google Maps deep links + Leaflet map pins)
+   - No Google Maps API key required
+   - Map pins use Leaflet + OpenStreetMap (free)
 */
-const STORAGE_KEY = "roadtrip_planner_v2";
-const SETTINGS_KEY = "roadtrip_settings_v2";
+const STORAGE_KEY = "roadtrip_planner_v3";
 
 const $ = (s) => document.querySelector(s);
 const $$ = (s) => Array.from(document.querySelectorAll(s));
@@ -22,14 +22,16 @@ function mapsSearchUrl(q){ return `https://www.google.com/maps/search/?api=1&que
 function mapsDirUrl(origin, dest){ return `https://www.google.com/maps/dir/?api=1&origin=${enc(origin)}&destination=${enc(dest)}&travelmode=driving`; }
 
 function defaultTrip(){
-  const stop = (time, zh, en, query, duration, tags, notes, ticket)=>({
+  const stop = (time, zh, en, query, duration, tags, notes, ticket, lat, lng)=>({
     id: uid(),
     time, nameZh: zh, nameEn: en||"", query: query||zh,
     durationMins: duration ?? 60,
     tags: tags||[],
     notes: notes||"",
     ticketRequired: !!ticket,
-    bookingId: ""
+    bookingId: "",
+    lat: (lat ?? null),
+    lng: (lng ?? null),
   });
 
   return {
@@ -39,63 +41,57 @@ function defaultTrip(){
     endDate: "2026-04-12",
     days: [
       { id:"d1", date:"2026-04-04", title:"Sydney", notes:"抵達日 + city walk", stops: [
-        stop("15:00","Sydney Opera House / Circular Quay","","Sydney Opera House",90,["Scenic"],"harbour 景色，慢行",false),
-        stop("17:00","Bondi Beach","","Bondi Beach NSW",90,["Scenic"],"可行到 Icebergs / 短段 coastal walk",false),
-        stop("19:00","Cape Solander (Whale lookout)","","Cape Solander lookout",60,["Wildlife","Scenic"],"Optional：4月未必有鯨魚，當作海岸觀景點",false),
+        stop("15:00","Sydney Opera House / Circular Quay","","Sydney Opera House",90,["Scenic"],"harbour 景色，慢行",false, -33.8568, 151.2153),
+        stop("17:00","Bondi Beach","","Bondi Beach NSW",90,["Scenic"],"可行到 Icebergs / 短段 coastal walk",false, -33.8915, 151.2767),
+        stop("19:00","Cape Solander (Whale lookout)","","Cape Solander lookout",60,["Wildlife","Scenic"],"Optional：4月未必有鯨魚，當作海岸觀景點",false, -34.0112, 151.1582),
       ]},
       { id:"d2", date:"2026-04-05", title:"Sydney → Jervis Bay / Nowra", notes:"Grand Pacific Drive + Hyams（住宿 Nowra/Huskisson）", stops: [
-        stop("07:30","Pick up car (Sydney CBD)","","Sydney CBD",30,["Safety"],"取車後出發",false),
-        stop("09:00","Royal National Park lookout","","Royal National Park NSW",30,["Scenic"],"",false),
-        stop("10:00","Sea Cliff Bridge","","Sea Cliff Bridge",20,["Scenic"],"",false),
-        stop("11:00","Kiama Blowhole","","Kiama Blowhole",45,["Scenic"],"",false),
-        stop("12:30","Lunch (Kiama)","","Kiama NSW",60,["Food"],"",false),
-        stop("14:30","Hyams Beach (Jervis Bay)","","Hyams Beach",90,["Scenic"],"停車可能緊張，盡量早/晚少少去",false),
-        stop("20:00","Stay: Nowra / Huskisson","","Nowra NSW",30,["Stay"],"入住休息",false),
+        stop("07:30","Pick up car (Sydney CBD)","","Sydney CBD",30,["Safety"],"取車後出發",false, null, null),
+        stop("09:00","Royal National Park lookout","","Royal National Park NSW",30,["Scenic"],"",false, null, null),
+        stop("10:00","Sea Cliff Bridge","","Sea Cliff Bridge",20,["Scenic"],"",false, -34.2970, 150.9647),
+        stop("11:00","Kiama Blowhole","","Kiama Blowhole",45,["Scenic"],"",false, -34.6728, 150.8552),
+        stop("12:30","Lunch (Kiama)","","Kiama NSW",60,["Food"],"",false, null, null),
+        stop("14:30","Hyams Beach (Jervis Bay)","","Hyams Beach",90,["Scenic"],"停車可能緊張，盡量早/晚少少去",false, -35.1033, 150.6915),
+        stop("20:00","Stay: Nowra / Huskisson","","Nowra NSW",30,["Stay"],"入住休息",false, -34.8857, 150.6000),
       ]},
       { id:"d3", date:"2026-04-06", title:"Nowra → Narooma", notes:"袋鼠海灘 + 海岸小鎮", stops: [
-        stop("08:30","Depart Nowra","","Nowra NSW",10,["Safety"],"早啲出發",false),
-        stop("10:30","Pebbly Beach (kangaroo)","","Pebbly Beach Murramarang National Park",60,["Wildlife"],"高機率見到袋鼠",false),
-        stop("12:30","Lunch stop","","Batemans Bay NSW",60,["Food"],"",false),
-        stop("15:00","Arrive Narooma","","Narooma NSW",30,["Scenic"],"",false),
-        stop("17:30","Glasshouse Rocks (sunset)","","Glasshouse Rocks Narooma",45,["Scenic"],"日落好靚",false),
-        stop("19:00","Stay: Narooma","","Narooma NSW",20,["Stay"],"",false),
+        stop("10:30","Pebbly Beach (kangaroo)","","Pebbly Beach Murramarang National Park",60,["Wildlife"],"高機率見到袋鼠",false, -35.7090, 150.3100),
+        stop("12:30","Lunch stop","","Batemans Bay NSW",60,["Food"],"",false, null, null),
+        stop("15:00","Arrive Narooma","","Narooma NSW",30,["Scenic"],"",false, -36.2167, 150.1360),
+        stop("17:30","Glasshouse Rocks (sunset)","","Glasshouse Rocks Narooma",45,["Scenic"],"日落好靚",false, -36.2075, 150.1385),
+        stop("19:00","Stay: Narooma","","Narooma NSW",20,["Stay"],"",false, -36.2167, 150.1360),
       ]},
       { id:"d4", date:"2026-04-07", title:"Narooma → Eden", notes:"藍池 + Merimbula", stops: [
-        stop("09:00","Depart Narooma","","Narooma NSW",10,["Safety"],"",false),
-        stop("11:00","Bermagui Blue Pool","","Bermagui Blue Pool",45,["Scenic"],"",false),
-        stop("13:00","Lunch (Merimbula)","","Merimbula NSW",60,["Food"],"",false),
-        stop("15:00","Eden lookout","","Eden Lookout and Rotary Park",45,["Scenic"],"",false),
-        stop("18:30","Stay: Eden","","Eden NSW",20,["Stay"],"",false),
+        stop("11:00","Bermagui Blue Pool","","Bermagui Blue Pool",45,["Scenic"],"",false, -36.4196, 150.0597),
+        stop("13:00","Lunch (Merimbula)","","Merimbula NSW",60,["Food"],"",false, null, null),
+        stop("15:00","Eden lookout","","Eden Lookout and Rotary Park",45,["Scenic"],"",false, -37.0645, 149.9023),
+        stop("18:30","Stay: Eden","","Eden NSW",20,["Stay"],"",false, -37.0622, 149.9032),
       ]},
       { id:"d5", date:"2026-04-08", title:"Eden → Cape Conran → Lakes Entrance → Paynesville", notes:"加油/咖啡 + 震撼海岸 + koala", stops: [
-        stop("09:00","Depart Eden","","Eden NSW",10,["Safety"],"",false),
-        stop("10:45","Orbost coffee + petrol","","Orbost VIC",45,["Food","Fuel"],"建議加油（之後油站少）",false),
-        stop("11:30","Cape Conran Coastal Park","","Cape Conran Coastal Park",60,["Scenic"],"短步道/海岸巨岩",false),
-        stop("14:00","Lakes Entrance lunch + walk","","Lakes Entrance VIC",75,["Food","Scenic"],"",false),
-        stop("16:00","Arrive Paynesville","","Paynesville VIC",20,["Stay"],"先 check-in / 休息",false),
-        stop("16:30","Raymond Island (Koala walk)","","Raymond Island Ferry Paynesville",60,["Wildlife"],"坐渡輪過島（幾分鐘）",false),
-        stop("19:00","Dinner (Paynesville)","","Paynesville VIC",60,["Food"],"",false),
+        stop("10:45","Orbost coffee + petrol","","Orbost VIC",45,["Food","Fuel"],"建議加油（之後油站少）",false, null, null),
+        stop("11:30","Cape Conran Coastal Park","","Cape Conran Coastal Park",60,["Scenic"],"短步道/海岸巨岩",false, -37.8030, 148.7410),
+        stop("14:00","Lakes Entrance lunch + walk","","Lakes Entrance VIC",75,["Food","Scenic"],"",false, -37.8786, 147.9936),
+        stop("16:00","Arrive Paynesville","","Paynesville VIC",20,["Stay"],"先 check-in / 休息",false, -37.9150, 147.7200),
+        stop("16:30","Raymond Island (Koala walk)","","Raymond Island Ferry Paynesville",60,["Wildlife"],"坐渡輪過島（幾分鐘）",false, -37.9130, 147.7130),
       ]},
       { id:"d6", date:"2026-04-09", title:"Paynesville → Wilsons Prom → Cowes", notes:"白沙海岸 + 晚上看企鵝（住 Cowes）", stops: [
-        stop("08:00","Depart Paynesville","","Paynesville VIC",10,["Safety"],"早出發，車程較長",false),
-        stop("11:00","Wilsons Prom NP","","Wilsons Promontory National Park",270,["Scenic","Wildlife"],"Squeaky Beach + Tidal River，慢行",false),
-        stop("18:00","Arrive Cowes (Phillip Island)","","Cowes VIC",30,["Stay"],"晚餐/休息",false),
-        stop("19:30","Penguin Parade (ticket)","","Phillip Island Penguin Parade",75,["Wildlife","Ticket"],"建議早 1 小時到；禁用閃光燈",true),
+        stop("11:00","Wilsons Prom NP","","Wilsons Promontory National Park",270,["Scenic","Wildlife"],"Squeaky Beach + Tidal River，慢行",false, -39.0380, 146.3220),
+        stop("18:00","Arrive Cowes (Phillip Island)","","Cowes VIC",30,["Stay"],"晚餐/休息",false, -38.4510, 145.2390),
+        stop("19:30","Penguin Parade (ticket)","","Phillip Island Penguin Parade",75,["Wildlife","Ticket"],"建議早 1 小時到；禁用閃光燈",true, -38.5180, 145.1510),
       ]},
       { id:"d7", date:"2026-04-10", title:"Phillip Island → Puffing Billy → Brighton → Melbourne → Night flight", notes:"火車＋彩色小屋＋市區快閃＋夜機返 Sydney", stops: [
-        stop("09:15","Cape Woolamai lookout","","Cape Woolamai",30,["Scenic"],"短步道/觀景",false),
-        stop("10:30","Puffing Billy (Belgrave→Lakeside)","","Puffing Billy Railway Belgrave Station",150,["Scenic","Ticket"],"建議預訂；坐左邊影相多",true),
-        stop("14:30","Brighton Bathing Boxes","","Brighton Bathing Boxes",30,["Scenic"],"30分鐘夠影相",false),
-        stop("15:30","Melbourne CBD quick walk","","Flinders Street Station",90,["Scenic","Food"],"Hosier Lane / Fed Square",false),
-        stop("20:00","Return car (Melbourne Airport)","","Melbourne Airport",45,["Safety"],"預留時間還車",false),
-        stop("22:00","Flight MEL → SYD","","Melbourne Airport",10,["Ticket"],"夜機",false),
+        stop("09:15","Cape Woolamai lookout","","Cape Woolamai",30,["Scenic"],"短步道/觀景",false, -38.5470, 145.3390),
+        stop("10:30","Puffing Billy (Belgrave→Lakeside)","","Puffing Billy Railway Belgrave Station",150,["Scenic","Ticket"],"建議預訂；坐左邊影相多",true, -37.9106, 145.3530),
+        stop("14:30","Brighton Bathing Boxes","","Brighton Bathing Boxes",30,["Scenic"],"30分鐘夠影相",false, -37.9160, 144.9850),
+        stop("15:30","Melbourne CBD quick walk","","Flinders Street Station",90,["Scenic","Food"],"Hosier Lane / Fed Square",false, -37.8183, 144.9671),
+        stop("20:00","Return car (Melbourne Airport)","","Melbourne Airport",45,["Safety"],"預留時間還車",false, -37.6733, 144.8433),
       ]},
       { id:"d8", date:"2026-04-11", title:"Sydney buffer day", notes:"休息/購物/自由安排", stops: [
-        stop("10:30","Free day (Sydney)","","Darling Harbour",180,["Scenic","Food"],"可改成你想去嘅點",false),
+        stop("10:30","Free day (Sydney)","","Darling Harbour",180,["Scenic","Food"],"可改成你想去嘅點",false, -33.8732, 151.2014),
       ]},
       { id:"d9", date:"2026-04-12", title:"Sydney departure", notes:"11:05 起飛", stops: [
-        stop("08:30","Go to airport","","Sydney Airport",60,["Safety"],"",false),
-        stop("11:05","Flight departure","","Sydney Airport",10,["Ticket"],"",false),
+        stop("08:30","Go to airport","","Sydney Airport",60,["Safety"],"",false, -33.9399, 151.1753),
+        stop("11:05","Flight departure","","Sydney Airport",10,["Ticket"],"",false, -33.9399, 151.1753),
       ]},
     ],
     bookings: [
@@ -132,15 +128,8 @@ function loadTrip(){
   try{ return JSON.parse(raw); }catch{ const t=defaultTrip(); saveTrip(t); return t; }
 }
 function saveTrip(t){ localStorage.setItem(STORAGE_KEY, JSON.stringify(t)); }
-function loadSettings(){
-  const raw = localStorage.getItem(SETTINGS_KEY);
-  if(!raw) return { };
-  try{ return JSON.parse(raw); }catch{ return {}; }
-}
-function saveSettings(s){ localStorage.setItem(SETTINGS_KEY, JSON.stringify(s)); }
 
 let trip = loadTrip();
-let settings = loadSettings();
 
 const views = {
   today: $("#view-today"),
@@ -211,6 +200,7 @@ function stopCard(day, s){
           ${en}
           <div class="tags">${tags}</div>
           ${note}
+          ${(Number.isFinite(s.lat) && Number.isFinite(s.lng)) ? `<div class="note">📍 ${s.lat.toFixed(5)}, ${s.lng.toFixed(5)}</div>` : ""}
         </div>
       </div>
       <div class="actions">
@@ -339,7 +329,7 @@ function renderToday(){
       <div class="day__head">
         <div>
           <div class="day__title">今日全部 Stops</div>
-          <div class="day__meta">提示：用卡片的「上一站→本站 / 本站→下一站」快速開 Google Maps 路線</div>
+          <div class="day__meta">提示：用卡片「上一站→本站 / 本站→下一站」開 Google Maps 路線</div>
         </div>
       </div>
       <div class="stops" data-stops="${escapeHtml(day.id)}">
@@ -382,12 +372,11 @@ function renderItinerary(){
         <div class="spacer"></div>
         <button class="btn btn--ghost" id="btnReset">重置</button>
       </div>
-      <div class="card__sub" style="margin-top:10px">拖拉卡片左邊「≡」改順序；點「編輯」改時間/內容；導航用 Google Maps（免費）。</div>
+      <div class="card__sub" style="margin-top:10px">拖拉「≡」改順序；點「編輯」改內容；導航用 Google Maps（免費）。</div>
     </div>
     ${daysHtml}
   `;
 
-  $$("[data-add-stop]").forEach(b=>b.addEventListener("click", ()=>openStopDialog({dayId:b.dataset.addStop})));
   $("#btnReset").onclick = ()=>{
     if(confirm("確定重置？會清除所有修改。")){
       localStorage.removeItem(STORAGE_KEY);
@@ -396,28 +385,45 @@ function renderItinerary(){
     }
   };
 
+  $$("[data-add-stop]").forEach(b=>b.addEventListener("click", ()=>openStopDialog({dayId:b.dataset.addStop})));
   enableDnD();
   attachStopActions();
 }
 
-function buildDayWaypointsUrl(stops){
-  if(!stops || stops.length<2) return "";
-  const origin = stops[0].query || stops[0].nameZh;
-  const dest = stops[stops.length-1].query || stops[stops.length-1].nameZh;
-  const middle = stops.slice(1,-1).map(s=>s.query||s.nameZh).slice(0,8);
-  let url = `https://www.google.com/maps/dir/?api=1&origin=${enc(origin)}&destination=${enc(dest)}&travelmode=driving`;
-  if(middle.length) url += `&waypoints=${enc(middle.join("|"))}`;
-  return url;
+/* ================= MAP =================
+   - Leaflet + OSM
+   - Pins only: Stay/Scenic/Wildlife
+   - Show daily polylines (if coords available)
+*/
+function shouldPin(stop){
+  const tags = new Set(stop.tags || []);
+  return tags.has("Stay") || tags.has("Scenic") || tags.has("Wildlife");
+}
+function hasLatLng(stop){
+  return Number.isFinite(stop.lat) && Number.isFinite(stop.lng);
 }
 
 function renderMap(){
-  const allStops = trip.days.flatMap(d=>d.stops.map(s=>({id:s.id, label:`${d.date} ${s.time||"--:--"} · ${s.nameZh}`, query:s.query||s.nameZh})));
+  const allStops = trip.days.flatMap(d=>d.stops.map(s=>({
+    id:s.id,
+    label:`${d.date} ${s.time||"--:--"} · ${s.nameZh}`,
+    query:s.query||s.nameZh
+  })));
+
   const opts = allStops.map(s=>`<option value="${escapeHtml(s.id)}">${escapeHtml(s.label)}</option>`).join("");
 
   views.map.innerHTML = `
     <div class="card">
-      <div class="card__title">快速路線 A → B</div>
-      <div class="card__sub">揀起點/終點，直接開 Google Maps 路線（Google 自動計時間）。</div>
+      <div class="card__title">地圖 Map（Pins + Route）</div>
+      <div class="card__sub">
+        只會 pin：Stay / Scenic / Wildlife（避免太亂）。要 pin 其他點：在 Stop 加 tag + 填 lat/lng。
+      </div>
+      <div class="mapbox" id="leafletMap"></div>
+    </div>
+
+    <div class="card">
+      <div class="card__title">快速路線 A → B（Google Maps）</div>
+      <div class="card__sub">揀起點/終點，直接開 Google Maps（Google 自動計車程）。</div>
       <div class="row">
         <label class="field" style="flex:1">
           <span class="field__label">From</span>
@@ -433,29 +439,6 @@ function renderMap(){
         <button class="btn" id="btnSwap">交換 Swap</button>
       </div>
     </div>
-
-    ${trip.days.map(day=>{
-      const url = buildDayWaypointsUrl(day.stops||[]);
-      return `
-        <div class="day">
-          <div class="day__head">
-            <div>
-              <div class="day__title">${escapeHtml(day.date)} · ${escapeHtml(day.title)}</div>
-              <div class="day__meta">${escapeHtml(day.notes||"")}</div>
-            </div>
-            <div class="row">
-              <button class="btn ${((day.stops||[]).length<2)?'':'btn--primary'}" ${((day.stops||[]).length<2)?'disabled':''} data-dayroute="${escapeHtml(day.id)}">當天多點路線</button>
-            </div>
-          </div>
-          <div class="stops" data-stops="${escapeHtml(day.id)}">
-            ${(day.stops||[]).length ? day.stops.map(s=>stopCard(day,s)).join("") : `<div class="empty">這天沒有 stops。</div>`}
-          </div>
-          <div class="day__meta" style="margin-top:10px">
-            多點路線限制：Google Maps waypoints 最多約 8 個；stops 太多請分段開啟。
-          </div>
-        </div>
-      `;
-    }).join("")}
   `;
 
   $("#btnRoute").onclick = ()=>{
@@ -471,19 +454,75 @@ function renderMap(){
     $("#routeFrom").value = $("#routeTo").value;
     $("#routeTo").value = a;
   };
-  $$("[data-dayroute]").forEach(b=>{
-    b.onclick = ()=>{
-      const day = findDayById(b.dataset.dayroute);
-      if(!day) return;
-      const url = buildDayWaypointsUrl(day.stops||[]);
-      if(url) window.open(url, "_blank");
-    };
-  });
 
-  enableDnD();
-  attachStopActions();
+  // Leaflet init (after DOM inserted)
+  initLeafletMap();
 }
 
+function initLeafletMap(){
+  // Leaflet is loaded via CDN; guard
+  if(!window.L){
+    $("#leafletMap").innerHTML = `<div class="empty">地圖載入失敗（可能無網 / CDN 被擋）。</div>`;
+    return;
+  }
+
+  // reuse map instance
+  if(!window.__leafletState){
+    window.__leafletState = { map:null, markers:null, lines:null };
+  }
+
+  const state = window.__leafletState;
+  const el = $("#leafletMap");
+
+  // (re)create map if needed
+  if(!state.map){
+    state.map = L.map(el, { zoomControl:true });
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 19,
+      attribution: "&copy; OpenStreetMap contributors"
+    }).addTo(state.map);
+    state.markers = L.layerGroup().addTo(state.map);
+    state.lines = L.layerGroup().addTo(state.map);
+  }else{
+    // if DOM replaced, Leaflet needs a new container; easiest: fully reset
+    try{ state.map.remove(); }catch{}
+    window.__leafletState = { map:null, markers:null, lines:null };
+    return initLeafletMap();
+  }
+
+  const pins = [];
+  state.markers.clearLayers();
+  state.lines.clearLayers();
+
+  // draw per-day polyline + pins
+  for(const day of trip.days){
+    const coords = [];
+    for(const s of (day.stops||[])){
+      if(shouldPin(s) && hasLatLng(s)){
+        const ll = [s.lat, s.lng];
+        pins.push(ll);
+        L.marker(ll).addTo(state.markers)
+          .bindPopup(`<b>${escapeHtml(day.date)} ${escapeHtml(s.time||"")}</b><br>${escapeHtml(s.nameZh)}<br><small>${escapeHtml(s.nameEn||"")}</small>`);
+      }
+      // for route line, we only connect points that have coords
+      if(hasLatLng(s)){
+        coords.push([s.lat, s.lng]);
+      }
+    }
+    if(coords.length >= 2){
+      L.polyline(coords, { weight: 4, opacity: 0.75 }).addTo(state.lines);
+    }
+  }
+
+  // fit bounds
+  if(pins.length){
+    state.map.fitBounds(pins, { padding:[18,18] });
+  }else{
+    state.map.setView([-37.0, 145.0], 5); // default AU
+  }
+}
+
+/* ================= Bookings / Checklist / Settings (keep simple) ================= */
 function bookingRow(b){
   return `
     <div class="stop" style="cursor:default">
@@ -492,7 +531,7 @@ function bookingRow(b){
         <div class="stop__title">
           <div class="stop__zh">${escapeHtml(b.provider||"(no provider)")}</div>
           <div class="stop__en">${escapeHtml(b.datetime||"")}</div>
-          <div class="note">Confirmation：<span class="kbd">${escapeHtml(b.confirmationNo||"(empty)")}</span></div>
+          <div class="note">Confirmation：<span class="pill">${escapeHtml(b.confirmationNo||"(empty)")}</span></div>
           <div class="note">Price：${escapeHtml(b.price||"")} ${escapeHtml(b.currency||"")}</div>
           ${b.notes ? `<div class="note">${escapeHtml(b.notes)}</div>` : ""}
         </div>
@@ -513,7 +552,7 @@ function renderBookings(){
         <div class="spacer"></div>
         <button class="btn btn--primary" id="btnAddBooking">+ 新增 Booking</button>
       </div>
-      <div class="card__sub" style="margin-top:10px">建議：把 Puffing Billy / Penguin / 租車 / 酒店 confirmation 都放入。</div>
+      <div class="card__sub" style="margin-top:10px">把 Puffing Billy / Penguin / 租車 / 酒店 confirmation 都放入。</div>
     </div>
 
     <div class="day">
@@ -616,7 +655,8 @@ function renderSettings(){
     <div class="card">
       <div class="card__title">設定 Settings</div>
       <div class="card__sub">
-        這個版本完全零成本（不使用 Google API）。按導航會開 Google Maps，Google 會自動計駕駛時間與避塞車。
+        導航：Google Maps（免費、免 API key）。<br>
+        地圖：Leaflet + OpenStreetMap（免費）。Pins 需要 Stop 有 lat/lng。
       </div>
       <div class="hr"></div>
       <div class="row">
@@ -626,8 +666,8 @@ function renderSettings(){
       </div>
       <div class="hr"></div>
       <div class="empty">
-        <div style="font-weight:800;margin-bottom:6px">安全提示</div>
-        夜間駕駛注意野生動物（kanga/wallaby）。長途每 2 小時休息、出發前加油、避免疲勞駕駛。
+        <div style="font-weight:900;margin-bottom:6px">貼士：點樣搵 lat/lng？</div>
+        打開 Google Maps → 長按地圖放 pin → 底部會出現座標（或分享位置）；把座標填入 Stop 的 lat/lng。
       </div>
     </div>
   `;
@@ -637,12 +677,7 @@ function renderSettings(){
 `Samsung / Android（Chrome）：
 1) 用 Chrome 開此頁
 2) 右上 ⋮
-3)「Install app」或「Add to Home screen」
-
-iPhone（Safari）：
-1) 打開此頁
-2) Share 分享
-3) Add to Home Screen`
+3)「Install app」或「Add to Home screen」`
     );
   };
 
@@ -677,13 +712,15 @@ iPhone（Safari）：
   };
 }
 
-/* ---- Stop modal ---- */
+/* ================= Stop modal ================= */
 const stopDlg = $("#stopDialog");
 const f_day = $("#f_day");
 const f_time = $("#f_time");
 const f_nameZh = $("#f_nameZh");
 const f_nameEn = $("#f_nameEn");
 const f_query = $("#f_query");
+const f_lat = $("#f_lat");
+const f_lng = $("#f_lng");
 const f_duration = $("#f_duration");
 const f_tags = $("#f_tags");
 const f_notes = $("#f_notes");
@@ -726,6 +763,8 @@ function openStopDialog({dayId, stopId}){
     f_nameZh.value = s.nameZh || "";
     f_nameEn.value = s.nameEn || "";
     f_query.value = s.query || "";
+    f_lat.value = (Number.isFinite(s.lat) ? String(s.lat) : "");
+    f_lng.value = (Number.isFinite(s.lng) ? String(s.lng) : "");
     f_duration.value = String(s.durationMins ?? 60);
     f_notes.value = s.notes || "";
     f_ticket.value = s.ticketRequired ? "yes" : "no";
@@ -737,6 +776,8 @@ function openStopDialog({dayId, stopId}){
     f_nameZh.value = "";
     f_nameEn.value = "";
     f_query.value = "";
+    f_lat.value = "";
+    f_lng.value = "";
     f_duration.value = "60";
     f_notes.value = "";
     f_ticket.value = "no";
@@ -751,6 +792,11 @@ function saveStop(){
   const day = findDayById(f_day.value);
   if(!day) return;
 
+  const latVal = f_lat.value.trim();
+  const lngVal = f_lng.value.trim();
+  const lat = latVal ? Number(latVal) : null;
+  const lng = lngVal ? Number(lngVal) : null;
+
   const obj = {
     id: f_stopId.value || uid(),
     time: f_time.value || "",
@@ -761,10 +807,11 @@ function saveStop(){
     tags: getMultiSelect(f_tags),
     notes: f_notes.value.trim(),
     ticketRequired: f_ticket.value === "yes",
-    bookingId: f_booking.value || ""
+    bookingId: f_booking.value || "",
+    lat: Number.isFinite(lat) ? lat : null,
+    lng: Number.isFinite(lng) ? lng : null,
   };
 
-  // find existing stop anywhere
   const existing = f_stopId.value ? findStop(f_stopId.value) : {day:null, index:-1};
   if(existing.stop){
     if(existing.day.id !== day.id){
@@ -796,7 +843,7 @@ function deleteStop(){
   render("today"); render("itinerary"); render("map");
 }
 
-/* ---- Booking modal ---- */
+/* ================= Booking modal (same as before, kept minimal) ================= */
 const bookingDlg = $("#bookingDialog");
 const b_type = $("#b_type");
 const b_provider = $("#b_provider");
@@ -864,7 +911,7 @@ function saveBooking(){
 
   saveTrip(trip);
   bookingDlg.close();
-  render("bookings"); // update list
+  render("bookings");
 }
 
 function deleteBooking(){
@@ -873,7 +920,6 @@ function deleteBooking(){
   if(!confirm("刪除這個 booking？")) return;
   trip.bookings = (trip.bookings||[]).filter(x=>x.id!==id);
 
-  // unlink any stop bookingId
   for(const day of trip.days){
     for(const s of day.stops){
       if(s.bookingId === id) s.bookingId = "";
@@ -885,7 +931,7 @@ function deleteBooking(){
   render("bookings"); render("itinerary"); render("today"); render("map");
 }
 
-/* topbar buttons */
+/* topbar */
 $("#btnExport").onclick = ()=>{
   const blob = new Blob([JSON.stringify(trip,null,2)], {type:"application/json"});
   const url = URL.createObjectURL(blob);
@@ -916,7 +962,6 @@ $("#btnShare").onclick = async ()=>{
   try{
     await navigator.share({title:"Road Trip Planner", text:"我的 Road Trip 行程", url: location.href});
   }catch{
-    // fallback: copy link
     try{
       await navigator.clipboard.writeText(location.href);
       alert("已複製連結");
