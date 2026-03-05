@@ -3,11 +3,16 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <meta name="theme-color" content="#0b1220" />
+  <meta name="theme-color" content="#ffffff" />
   <title>Road Trip Planner｜行程管家</title>
+
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="icon-192.png">
   <link rel="apple-touch-icon" href="icon-192.png">
+
+  <!-- Leaflet (Free map: OpenStreetMap) -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -15,7 +20,7 @@
     <div class="topbar__left">
       <div class="brand">
         <div class="brand__title">Road Trip Planner</div>
-        <div class="brand__sub">繁中主 · EN assist · Offline · Google Maps</div>
+        <div class="brand__sub">繁中主 · EN assist · Offline · Google Maps + Map Pins</div>
       </div>
     </div>
     <div class="topbar__right">
@@ -42,7 +47,7 @@
       <span class="bottomnav__icon">🗓️</span><span class="bottomnav__label">行程</span>
     </button>
     <button class="bottomnav__item" data-tab="map">
-      <span class="bottomnav__icon">🧭</span><span class="bottomnav__label">導航</span>
+      <span class="bottomnav__icon">🗺️</span><span class="bottomnav__label">地圖</span>
     </button>
     <button class="bottomnav__item" data-tab="bookings">
       <span class="bottomnav__icon">🎟️</span><span class="bottomnav__label">預訂</span>
@@ -92,6 +97,17 @@
             <span class="field__label">地圖查詢 / 地址 Map query</span>
             <input id="f_query" placeholder="名稱或地址，例如：Puffing Billy Railway Belgrave Station" />
             <span class="field__help">如果你想更準：可填完整地址；否則填景點名都 OK。</span>
+          </label>
+
+          <!-- NEW: lat/lng for pinning -->
+          <label class="field">
+            <span class="field__label">Latitude（可選）</span>
+            <input id="f_lat" type="number" inputmode="decimal" step="0.000001" placeholder="-37.91" />
+          </label>
+
+          <label class="field">
+            <span class="field__label">Longitude（可選）</span>
+            <input id="f_lng" type="number" inputmode="decimal" step="0.000001" placeholder="145.35" />
           </label>
 
           <label class="field">
@@ -210,6 +226,9 @@
       </div>
     </form>
   </dialog>
+
+  <!-- Leaflet JS -->
+  <script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
   <script src="app.js"></script>
 </body>
