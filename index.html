@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="theme-color" content="#0b1220" />
+  <title>Road Trip Planner｜行程管家</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icon-192.png">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar__left">
+      <div class="brand">
+        <div class="brand__title">Road Trip Planner</div>
+        <div class="brand__sub">繁中主 · EN assist · Offline · Google Maps</div>
+      </div>
+    </div>
+    <div class="topbar__right">
+      <button class="btn btn--ghost" id="btnShare" title="分享 / Share">分享</button>
+      <button class="btn btn--ghost" id="btnExport" title="匯出 JSON">匯出</button>
+      <button class="btn btn--ghost" id="btnImport" title="匯入 JSON">匯入</button>
+    </div>
+  </header>
+
+  <main class="main">
+    <section id="view-today" class="view"></section>
+    <section id="view-itinerary" class="view hidden"></section>
+    <section id="view-map" class="view hidden"></section>
+    <section id="view-bookings" class="view hidden"></section>
+    <section id="view-checklist" class="view hidden"></section>
+    <section id="view-settings" class="view hidden"></section>
+  </main>
+
+  <nav class="bottomnav">
+    <button class="bottomnav__item active" data-tab="today">
+      <span class="bottomnav__icon">☀️</span><span class="bottomnav__label">今日</span>
+    </button>
+    <button class="bottomnav__item" data-tab="itinerary">
+      <span class="bottomnav__icon">🗓️</span><span class="bottomnav__label">行程</span>
+    </button>
+    <button class="bottomnav__item" data-tab="map">
+      <span class="bottomnav__icon">🧭</span><span class="bottomnav__label">導航</span>
+    </button>
+    <button class="bottomnav__item" data-tab="bookings">
+      <span class="bottomnav__icon">🎟️</span><span class="bottomnav__label">預訂</span>
+    </button>
+    <button class="bottomnav__item" data-tab="checklist">
+      <span class="bottomnav__icon">✅</span><span class="bottomnav__label">清單</span>
+    </button>
+    <button class="bottomnav__item" data-tab="settings">
+      <span class="bottomnav__icon">⚙️</span><span class="bottomnav__label">設定</span>
+    </button>
+  </nav>
+
+  <!-- Stop Modal -->
+  <dialog id="stopDialog" class="dialog">
+    <form method="dialog" class="dialog__card">
+      <div class="dialog__head">
+        <div>
+          <div class="dialog__title" id="stopDialogTitle">新增 Stop</div>
+          <div class="dialog__hint">可拖拉排序；導航會開 Google Maps（免 API / 免費用）</div>
+        </div>
+        <button class="iconbtn" value="cancel" aria-label="Close">✕</button>
+      </div>
+
+      <div class="dialog__body">
+        <div class="formgrid">
+          <label class="field">
+            <span class="field__label">日期 Day</span>
+            <select id="f_day"></select>
+          </label>
+
+          <label class="field">
+            <span class="field__label">時間 Start</span>
+            <input id="f_time" type="time" />
+          </label>
+
+          <label class="field">
+            <span class="field__label">中文名稱 ZH</span>
+            <input id="f_nameZh" placeholder="例如：Bondi Beach" />
+          </label>
+
+          <label class="field">
+            <span class="field__label">英文 EN（可選）</span>
+            <input id="f_nameEn" placeholder="Bondi Beach" />
+          </label>
+
+          <label class="field field--full">
+            <span class="field__label">地圖查詢 / 地址 Map query</span>
+            <input id="f_query" placeholder="名稱或地址，例如：Puffing Billy Railway Belgrave Station" />
+            <span class="field__help">如果你想更準：可填完整地址；否則填景點名都 OK。</span>
+          </label>
+
+          <label class="field">
+            <span class="field__label">停留分鐘 Duration</span>
+            <input id="f_duration" type="number" min="0" step="5" />
+          </label>
+
+          <label class="field">
+            <span class="field__label">標籤 Tags</span>
+            <select id="f_tags" multiple>
+              <option value="Scenic">Scenic 景觀</option>
+              <option value="Wildlife">Wildlife 動物</option>
+              <option value="Food">Food 餐飲</option>
+              <option value="Fuel">Fuel 加油</option>
+              <option value="Stay">Stay 住宿</option>
+              <option value="Ticket">Ticket 門票</option>
+              <option value="Safety">Safety 安全</option>
+            </select>
+            <span class="field__help">手機：長按或逐個點選（多選）。</span>
+          </label>
+
+          <label class="field field--full">
+            <span class="field__label">備註 Notes</span>
+            <textarea id="f_notes" placeholder="停車、步行強度、爸媽步速、天氣備註…"></textarea>
+          </label>
+
+          <label class="field">
+            <span class="field__label">需預訂?</span>
+            <select id="f_ticket">
+              <option value="no">No</option>
+              <option value="yes">Yes</option>
+            </select>
+          </label>
+
+          <label class="field">
+            <span class="field__label">關聯預訂（可選）</span>
+            <select id="f_booking"></select>
+          </label>
+
+          <input type="hidden" id="f_stopId" />
+        </div>
+      </div>
+
+      <div class="dialog__foot">
+        <button class="btn btn--danger" id="btnDeleteStop" type="button">刪除</button>
+        <div class="spacer"></div>
+        <button class="btn" value="cancel">取消</button>
+        <button class="btn btn--primary" id="btnSaveStop" type="button">保存</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Booking Modal -->
+  <dialog id="bookingDialog" class="dialog">
+    <form method="dialog" class="dialog__card">
+      <div class="dialog__head">
+        <div>
+          <div class="dialog__title" id="bookingDialogTitle">新增 Booking</div>
+          <div class="dialog__hint">把 confirmation、時間、金額集中一處（離線可讀）</div>
+        </div>
+        <button class="iconbtn" value="cancel" aria-label="Close">✕</button>
+      </div>
+
+      <div class="dialog__body">
+        <div class="formgrid">
+          <label class="field">
+            <span class="field__label">類型 Type</span>
+            <select id="b_type">
+              <option value="activity">Activity</option>
+              <option value="hotel">Hotel</option>
+              <option value="car">Car rental</option>
+              <option value="flight">Flight</option>
+              <option value="other">Other</option>
+            </select>
+          </label>
+
+          <label class="field">
+            <span class="field__label">供應商 Provider</span>
+            <input id="b_provider" placeholder="例如：Penguin Parade" />
+          </label>
+
+          <label class="field">
+            <span class="field__label">日期時間 Datetime</span>
+            <input id="b_datetime" placeholder="例如：2026-04-09 19:30" />
+          </label>
+
+          <label class="field">
+            <span class="field__label">Confirmation No.</span>
+            <input id="b_conf" placeholder="例如：ABCD1234" />
+          </label>
+
+          <label class="field">
+            <span class="field__label">價格 Price</span>
+            <input id="b_price" placeholder="例如：159" />
+          </label>
+
+          <label class="field">
+            <span class="field__label">幣別 Currency</span>
+            <input id="b_currency" value="AUD" />
+          </label>
+
+          <label class="field field--full">
+            <span class="field__label">備註 Notes</span>
+            <textarea id="b_notes" placeholder="例如：入場時間、取票方法、停車提醒…"></textarea>
+          </label>
+
+          <input type="hidden" id="b_id" />
+        </div>
+      </div>
+
+      <div class="dialog__foot">
+        <button class="btn btn--danger" id="btnDeleteBooking" type="button">刪除</button>
+        <div class="spacer"></div>
+        <button class="btn" value="cancel">取消</button>
+        <button class="btn btn--primary" id="btnSaveBooking" type="button">保存</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script src="app.js"></script>
+</body>
+</html>
