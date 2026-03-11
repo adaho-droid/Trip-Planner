@@ -374,7 +374,7 @@ function renderBookings(){
           <button class="btn btn--primary" data-edit-booking="${escapeHtml(booking.id)}">編輯</button>
         </div>
         <div class="note">Confirmation: ${escapeHtml(booking.conf || '—')} · ${escapeHtml(booking.currency || '')} ${escapeHtml(booking.price || '')}</div>
-        ${booking.notes ? `<div class="note">${escapeHtml(booking.notes)}</div>` : ''}
+        ${booking.notes ? `<div class="note">${booking.notes.replace(/\n/g,"<br>")}</div>` : ''}
       </div>`).join('') : '<div class="empty">未有 booking。</div>'}</div>`;
   $('#btnAddBooking').onclick = ()=>openBookingDialog();
   $$('[data-edit-booking]').forEach(btn => btn.onclick = ()=>openBookingDialog(btn.dataset.editBooking));
