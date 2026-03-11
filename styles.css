@@ -112,8 +112,9 @@ a{text-decoration:none;color:inherit}
 .field{display:flex;flex-direction:column;gap:6px}.field--full{grid-column:1/-1}.field__label{font-size:12px;font-weight:800;color:var(--muted)}
 .field input,.field select,.field textarea{min-height:44px;border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:#fff;color:var(--text)}
 .field textarea{
-  min-height:140px;
-  resize:vertical;
+  min-height:60px;
+  resize:none;
+  overflow:hidden;
 }
 .formgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 @media (max-width:760px){.formgrid{grid-template-columns:1fr}}
