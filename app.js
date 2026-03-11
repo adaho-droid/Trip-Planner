@@ -581,6 +581,7 @@ function openBookingDialog(id){
   $('#b_price').value = booking?.price || '';
   $('#b_currency').value = booking?.currency || 'AUD';
   $('#b_notes').value = booking?.notes || '';
+  autoResizeTextarea($('#b_notes'));
   $('#btnDeleteBooking').style.display = booking ? '' : 'none';
   $('#btnSaveBooking').onclick = saveBookingFromDialog;
   $('#btnDeleteBooking').onclick = deleteBookingFromDialog;
