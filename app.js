@@ -5,6 +5,20 @@ const $$ = (s) => Array.from(document.querySelectorAll(s));
 
 function uid(){ return Math.random().toString(36).slice(2, 10) + Date.now().toString(36); }
 function pad(n){ return String(n).padStart(2, '0'); }
+function autoResizeTextarea(el){
+
+  if(!el) return;
+
+  const resize = () => {
+    el.style.height = "auto";
+    el.style.height = el.scrollHeight + "px";
+  };
+
+  el.addEventListener("input", resize);
+
+  // run once when opened
+  setTimeout(resize, 0);
+}
 function formatDate(date){
   const d = new Date(date + 'T00:00:00');
   if(Number.isNaN(d.getTime())) return date;
