@@ -552,19 +552,20 @@ function openStopDialog({dayId, stopId} = {}){
 }
 function collectStopDialog(){
   return {
-    id: $('#f_stopId').value || uid(),
-    time: $('#f_time').value || trip.baseStartTime || '09:00',
-    nameZh: $('#f_nameZh').value.trim(),
-    nameEn: $('#f_nameEn').value.trim(),
-    query: $('#f_query').value.trim(),
-    lat: $('#f_lat').value === '' ? null : Number($('#f_lat').value),
-    lng: $('#f_lng').value === '' ? null : Number($('#f_lng').value),
-    durationMins: Number($('#f_duration').value || 0),
-    tags: Array.from($('#f_tags').selectedOptions).map(o => o.value),
-    notes: $('#f_notes').value.trim(),
-    ticket: $('#f_ticket').value,
-    bookingId: $('#f_booking').value
-  };
+  id: $('#f_stopId').value || uid(),
+  time: $('#f_time').value || trip.baseStartTime || '09:00',
+  nameZh: $('#f_nameZh').value.trim(),
+  nameEn: $('#f_nameEn').value.trim(),
+  query: $('#f_query').value.trim(),
+  lat: $('#f_lat').value === '' ? null : Number($('#f_lat').value),
+  lng: $('#f_lng').value === '' ? null : Number($('#f_lng').value),
+  durationMins: Number($('#f_duration').value || 0),
+  tags: Array.from($('#f_tags').selectedOptions).map(o => o.value),
+  notes: $('#f_notes').value.trim(),
+  ticket: $('#f_ticket').value,
+  bookingId: $('#f_booking').value,
+  locked: $('#f_locked').checked
+};
 }
 function saveStopFromDialog(){
   const day = getDay($('#f_day').value);
