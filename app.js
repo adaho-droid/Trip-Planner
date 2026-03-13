@@ -206,7 +206,10 @@ function stopCard(day, stop){
           <div class="stop__title">
             <div class="stop__zh">${escapeHtml(stop.nameZh || stop.nameEn || '(untitled)')}</div>
             ${stop.nameEn && stop.nameEn !== stop.nameZh ? `<div class="stop__en">${escapeHtml(stop.nameEn)}</div>` : ''}
-            <div class="tags">${stopTagsHtml(stop)}</div>
+         <div class="tags">
+            ${stopTagsHtml(stop)}
+            ${stop.locked ? `<span class="tag tag--ticket">Locked time</span>` : ''}
+         </div>
             ${stop.notes ? `<div class="note">${escapeHtml(stop.notes)}</div>` : ''}
             ${Number.isFinite(stop.lat) && Number.isFinite(stop.lng) ? `<div class="note">📍 ${stop.lat.toFixed(5)}, ${stop.lng.toFixed(5)}</div>` : `<div class="note">⚠️ 未有座標</div>`}
             ${routeHint}
