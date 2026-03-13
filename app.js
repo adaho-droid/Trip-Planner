@@ -116,6 +116,7 @@ function normalizeTrip(raw){
       stop.notes ||= '';
       stop.ticket ||= 'no';
       stop.bookingId ||= '';
+      stop.locked = !!stop.locked;
       if(stop.lat !== '' && stop.lat != null) stop.lat = Number(stop.lat);
       if(stop.lng !== '' && stop.lng != null) stop.lng = Number(stop.lng);
     }
