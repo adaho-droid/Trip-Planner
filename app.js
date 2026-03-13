@@ -207,10 +207,10 @@ function stopCard(day, stop){
           <div class="stop__title">
             <div class="stop__zh">${escapeHtml(stop.nameZh || stop.nameEn || '(untitled)')}</div>
             ${stop.nameEn && stop.nameEn !== stop.nameZh ? `<div class="stop__en">${escapeHtml(stop.nameEn)}</div>` : ''}
-         <div class="tags">
+        <div class="tags">
             ${stopTagsHtml(stop)}
-            ${stop.locked ? `<span class="tag tag--ticket">Locked time</span>` : ''}
-         </div>
+            ${stop.locked ? `<span class="tag tag--ticket">Locked</span>` : ''}
+        </div>
             ${stop.notes ? `<div class="note">${escapeHtml(stop.notes)}</div>` : ''}
             ${Number.isFinite(stop.lat) && Number.isFinite(stop.lng) ? `<div class="note">📍 ${stop.lat.toFixed(5)}, ${stop.lng.toFixed(5)}</div>` : `<div class="note">⚠️ 未有座標</div>`}
             ${routeHint}
@@ -547,7 +547,7 @@ function openStopDialog({dayId, stopId} = {}){
   $('#f_duration').value = currentStop?.durationMins ?? 60;
   $('#f_notes').value = currentStop?.notes || '';
   $('#f_ticket').value = currentStop?.ticket || 'no';
-  $('#f_locked').checked = currentStop?.locked || false;
+  $('#f_locked').value = currentStop?.locked ? 'yes' : 'no';
   Array.from($('#f_tags').options).forEach(o => o.selected = (currentStop?.tags || []).includes(o.value));
   $('#btnDeleteStop').style.display = currentStop ? '' : 'none';
   $('#btnSaveStop').onclick = saveStopFromDialog;
@@ -569,7 +569,7 @@ function collectStopDialog(){
   notes: $('#f_notes').value.trim(),
   ticket: $('#f_ticket').value,
   bookingId: $('#f_booking').value,
-  locked: $('#f_locked').checked
+  locked: $('#f_locked').value === 'yes'
 };
 }
 function saveStopFromDialog(){
