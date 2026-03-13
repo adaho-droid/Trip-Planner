@@ -741,31 +741,67 @@ async function autoScheduleAllFromMap(){
   saveTrip(); renderMap();
 }
 async function autoScheduleDay(dayId, rerender = true){
-  const day = getDay(dayId); if(!day || day.stops.length < 2) return;
+  const day = getDay(dayId);
+  if(!day || day.stops.length === 0) return;
+
   const withCoords = day.stops.filter(s => Number.isFinite(s.lat) && Number.isFinite(s.lng));
   const withoutCoords = day.stops.filter(s => !(Number.isFinite(s.lat) && Number.isFinite(s.lng)));
+
   if(withCoords.length >= 2){
     const ordered = [withCoords[0]];
     const remaining = withCoords.slice(1);
+
     while(remaining.length){
-      const last = ordered[ordered.length-1];
-      let bestIndex = 0, bestDist = Infinity;
+      const last = ordered[ordered.length - 1];
+      let bestIndex = 0;
+      let bestDist = Infinity;
+
       remaining.forEach((candidate, idx) => {
         const dist = haversineKm(last, candidate);
-        if(dist < bestDist){ bestDist = dist; bestIndex = idx; }
+        if(dist < bestDist){
+          bestDist = dist;
+          bestIndex = idx;
+        }
       });
-      ordered.push(remaining.splice(bestIndex,1)[0]);
+
+      ordered.push(remaining.splice(bestIndex, 1)[0]);
     }
+
     day.stops = ordered.concat(withoutCoords);
   }
+
+  // sort locked stops by time first, then others
+  day.stops.sort((a, b) => {
+    const aLocked = !!a.locked;
+    const bLocked = !!b.locked;
+
+    if(aLocked && bLocked) return toMinutes(a.time) - toMinutes(b.time);
+    if(aLocked && !bLocked) return -1;
+    if(!aLocked && bLocked) return 1;
+    return 0;
+  });
+
   let currentTime = trip.baseStartTime || '09:00';
-  if(day.stops[0]) day.stops[0].time = currentTime;
-  for(let i=0;i<day.stops.length;i++){
+
+  for(let i = 0; i < day.stops.length; i++){
     const stop = day.stops[i];
-    if(i === 0){ stop.time = currentTime; continue; }
-    const prev = day.stops[i-1];
+
+    if(i === 0){
+      if(stop.locked && stop.time){
+        currentTime = stop.time;
+      } else {
+        stop.time = currentTime;
+      }
+      continue;
+    }
+
+    const prev = day.stops[i - 1];
     let drive = 25;
-    if(Number.isFinite(prev.lat) && Number.isFinite(prev.lng) && Number.isFinite(stop.lat) && Number.isFinite(stop.lng)){
+
+    if(
+      Number.isFinite(prev.lat) && Number.isFinite(prev.lng) &&
+      Number.isFinite(stop.lat) && Number.isFinite(stop.lng)
+    ){
       try{
         const pair = await fetchOsrmRoute([[prev.lat, prev.lng], [stop.lat, stop.lng]]);
         drive = Math.max(5, Math.round((pair.routes?.[0]?.duration || 0) / 60));
@@ -774,9 +810,19 @@ async function autoScheduleDay(dayId, rerender = true){
         drive = Math.max(10, Math.round(haversineKm(prev, stop) / 50 * 60));
       }
     }
-    currentTime = addMinutes(prev.time, (prev.durationMins || 0) + drive);
-    stop.time = currentTime;
+
+    const suggestedTime = addMinutes(prev.time, (prev.durationMins || 0) + drive);
+
+    if(stop.locked && stop.time){
+      stop.time = stop.time;
+    } else {
+      stop.time = suggestedTime;
+    }
   }
+
+  // final sort by time for display
+  day.stops.sort((a, b) => toMinutes(a.time) - toMinutes(b.time));
+
   saveTrip();
   if(rerender) render(currentTab);
 }
