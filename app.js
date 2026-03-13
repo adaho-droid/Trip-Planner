@@ -543,6 +543,7 @@ function openStopDialog({dayId, stopId} = {}){
   $('#f_duration').value = currentStop?.durationMins ?? 60;
   $('#f_notes').value = currentStop?.notes || '';
   $('#f_ticket').value = currentStop?.ticket || 'no';
+  $('#f_locked').checked = currentStop?.locked || false;
   Array.from($('#f_tags').options).forEach(o => o.selected = (currentStop?.tags || []).includes(o.value));
   $('#btnDeleteStop').style.display = currentStop ? '' : 'none';
   $('#btnSaveStop').onclick = saveStopFromDialog;
